@@ -39,9 +39,9 @@ interface Challenge {
 
 // Time limits in minutes based on difficulty
 const TIME_LIMITS = {
-  easy: 30,
-  medium: 25,
-  hard: 15,
+  easy: 20,
+  medium: 15,
+  hard: 10,
 }
 
 export default function ChallengePage({ params }: ChallengeProps) {
@@ -94,7 +94,7 @@ export default function ChallengePage({ params }: ChallengeProps) {
         }
 
         setChallenge(data)
-        toast.success("challenge loaded")
+        // toast.success("challenge loaded")
 
         // Set time limit based on difficulty
         const minutes = TIME_LIMITS[data.difficulty.toLowerCase() as keyof typeof TIME_LIMITS] || 30
@@ -268,7 +268,7 @@ export default function ChallengePage({ params }: ChallengeProps) {
         throw error
       }
 
-      toast.info(`${input} === ${challenge.code} ? "Challenge completed!" : "Attempt saved"`)
+      // toast.info(`${input} === ${challenge.code} ? "Challenge completed!" : "Attempt saved"`)
     } catch (error) {
       console.error("Error saving results:", error)
       toast.error(`Error saving results: ${error}`)

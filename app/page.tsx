@@ -128,9 +128,13 @@ export default function Home() {
       </main>
       <footer className="border-t p-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col">
+           <p className="text-sm text-gray-500 dark:text-gray-400">
             &copy; {new Date().getFullYear()} Codesist. All rights reserved.
           </p>
+          <p className="text-black text-base">create with love by <Link href="https://www.x.com/timara">timara</Link></p>
+          </div>
+       
           <div className="flex gap-4">
             <Link href="/about" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
               About
