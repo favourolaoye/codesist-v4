@@ -490,6 +490,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </footer>
+      <ToastContainer/>
     </div>
   )
 }
