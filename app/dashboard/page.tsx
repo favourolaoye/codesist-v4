@@ -254,20 +254,6 @@ export default function DashboardPage() {
               <TimeBasedGreeting username={profile?.username || "Developer"} />
               <p className="text-muted-foreground">Ready to improve your coding speed today?</p>
             </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-primary/10">
-                <AvatarImage src={profile?.avatar_url || ""} alt={profile?.username || "User"} />
-                <AvatarFallback className="text-xl">
-                  {profile?.username?.charAt(0).toUpperCase() || <User className="h-8 w-8" />}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="font-medium">{profile?.username || "User"}</span>
-                <Link href="/profile" className="text-sm text-primary hover:underline">
-                  Edit Profile
-                </Link>
-              </div>
-            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
