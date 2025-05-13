@@ -11,7 +11,7 @@ import { Keyboard, Clock, BarChart3, Code, History, Award, LogOut, User } from "
 import { TimeBasedGreeting } from "@/components/time-based-greeting"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+import { ToastContainer, toast } from "react-toastify"
 import { formatDate } from "@/lib/utils/date-formatter"
 
 interface Challenge {
@@ -62,8 +62,7 @@ export default function DashboardPage() {
 
   const supabase = createClient()
   const router = useRouter()
-  const { toast } = useToast()
-
+  
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -190,11 +189,7 @@ export default function DashboardPage() {
         }
       } catch (error) {
         console.error("Error fetching data:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load dashboard data",
-          variant: "destructive",
-        })
+        toast.error("Failed to load dashboard data")
       } finally {
         setIsLoading(false)
       }
@@ -252,7 +247,7 @@ export default function DashboardPage() {
           </nav>
         </div>
       </header>
-      <main className="flex-1 container py-6">
+      <main className="flex-1 container p-6">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex flex-col gap-2">
@@ -477,7 +472,7 @@ export default function DashboardPage() {
           </Tabs>
         </div>
       </main>
-      <footer className="border-t py-6">
+      <footer className="border-t p-6">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             &copy; {new Date().getFullYear()} CodeTyper. All rights reserved.
