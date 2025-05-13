@@ -268,7 +268,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col md:flex-row gap-6 items-start">
                       <div className="flex flex-col items-center gap-4">
                         <Avatar className="h-24 w-24">
-                          <AvatarImage src={avatarUrl || ""} alt={profile?.username || "User"} />
+                          <AvatarImage src={avatarUrl || ""} alt={profile?.username || "User"} className="object-cover"/>
                           <AvatarFallback className="text-2xl">
                             {profile?.username?.charAt(0).toUpperCase() || <User className="h-12 w-12" />}
                           </AvatarFallback>
