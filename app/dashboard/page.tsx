@@ -11,7 +11,8 @@ import { Keyboard, Clock, BarChart3, Code, History, Award, LogOut, User } from "
 import { TimeBasedGreeting } from "@/components/time-based-greeting"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { toast, ToastContainer } from "react-toastify"
+import { useToast } from "@/hooks/use-toast"
+import { formatDate } from "@/lib/utils/date-formatter"
 
 interface Challenge {
   id: string
@@ -31,6 +32,18 @@ interface ChallengeAttempt {
   challenge: Challenge
 }
 
+interface LanguageStats {
+  language: string
+  avgWpm: number
+  attempts: number
+  avgAccuracy: number
+}
+
+interface TimeSeriesData {
+  date: string
+  wpm: number
+}
+
 export default function DashboardPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [recentAttempts, setRecentAttempts] = useState<ChallengeAttempt[]>([])
@@ -44,10 +57,12 @@ export default function DashboardPage() {
     completedChallenges: 0,
     avgAccuracy: 0,
   })
+  const [languageStats, setLanguageStats] = useState<LanguageStats[]>([])
+  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([])
 
   const supabase = createClient()
   const router = useRouter()
-  
+  const { toast } = useToast()
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -80,24 +95,26 @@ export default function DashboardPage() {
 
         setChallenges(challengesData || [])
 
-        // Get recent attempts with challenge data
-        const { data: attemptsData } = await supabase
+        // Get all attempts with challenge data for statistics
+        const { data: allAttemptsData } = await supabase
           .from("challenge_attempts")
           .select(`
-            id, 
-            challenge_id, 
-            wpm, 
-            accuracy, 
-            time_seconds, 
-            created_at,
-            challenge:challenges(id, title, language, difficulty)
-          `)
+        id, 
+        challenge_id, 
+        wpm, 
+        accuracy, 
+        time_seconds, 
+        created_at,
+        challenge:challenges(id, title, language, difficulty)
+      `)
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(5)
+          .order("created_at", { ascending: true })
+
+        // Get recent attempts (limit to 5)
+        const recentAttemptsData = allAttemptsData?.slice(-5).reverse() || []
 
         const formattedAttempts =
-          attemptsData?.map((attempt) => ({
+          recentAttemptsData.map((attempt) => ({
             ...attempt,
             challenge: attempt.challenge as unknown as Challenge,
           })) || []
@@ -105,20 +122,79 @@ export default function DashboardPage() {
         setRecentAttempts(formattedAttempts)
 
         // Calculate stats
-        if (attemptsData && attemptsData.length > 0) {
-          const totalWpm = attemptsData.reduce((sum, attempt) => sum + attempt.wpm, 0)
-          const totalAccuracy = attemptsData.reduce((sum, attempt) => sum + attempt.accuracy, 0)
-          const uniqueChallenges = new Set(attemptsData.map((attempt) => attempt.challenge_id)).size
+        if (allAttemptsData && allAttemptsData.length > 0) {
+          const totalWpm = allAttemptsData.reduce((sum, attempt) => sum + attempt.wpm, 0)
+          const totalAccuracy = allAttemptsData.reduce((sum, attempt) => sum + attempt.accuracy, 0)
+          const uniqueChallenges = new Set(allAttemptsData.map((attempt) => attempt.challenge_id)).size
 
           setStats({
-            avgWpm: Math.round(totalWpm / attemptsData.length),
+            avgWpm: Math.round(totalWpm / allAttemptsData.length),
             completedChallenges: uniqueChallenges,
-            avgAccuracy: Math.round(totalAccuracy / attemptsData.length),
+            avgAccuracy: Math.round(totalAccuracy / allAttemptsData.length),
           })
+
+          // Process language statistics
+          const languageMap = new Map<string, { totalWpm: number; totalAccuracy: number; count: number }>()
+
+          allAttemptsData.forEach((attempt) => {
+            const language = (attempt.challenge as any).language
+            if (!language) return
+
+            const current = languageMap.get(language) || { totalWpm: 0, totalAccuracy: 0, count: 0 }
+            languageMap.set(language, {
+              totalWpm: current.totalWpm + attempt.wpm,
+              totalAccuracy: current.totalAccuracy + attempt.accuracy,
+              count: current.count + 1,
+            })
+          })
+
+          const processedLanguageStats: LanguageStats[] = Array.from(languageMap.entries()).map(
+            ([language, { totalWpm, totalAccuracy, count }]) => ({
+              language,
+              avgWpm: Math.round(totalWpm / count),
+              attempts: count,
+              avgAccuracy: Math.round(totalAccuracy / count),
+            }),
+          )
+
+          setLanguageStats(processedLanguageStats)
+
+          // Process time series data (last 30 days)
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+          const recentAttempts = allAttemptsData
+            .filter((attempt) => new Date(attempt.created_at) >= thirtyDaysAgo)
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+          // Group by date
+          const dateMap = new Map<string, { totalWpm: number; count: number }>()
+
+          recentAttempts.forEach((attempt) => {
+            const dateStr = formatDate(attempt.created_at)
+            const current = dateMap.get(dateStr) || { totalWpm: 0, count: 0 }
+            dateMap.set(dateStr, {
+              totalWpm: current.totalWpm + attempt.wpm,
+              count: current.count + 1,
+            })
+          })
+
+          const processedTimeSeriesData: TimeSeriesData[] = Array.from(dateMap.entries()).map(
+            ([date, { totalWpm, count }]) => ({
+              date,
+              wpm: Math.round(totalWpm / count),
+            }),
+          )
+
+          setTimeSeriesData(processedTimeSeriesData)
         }
       } catch (error) {
         console.error("Error fetching data:", error)
-        toast.info("Failed to load dashboard data")
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        })
       } finally {
         setIsLoading(false)
       }
@@ -155,7 +231,7 @@ export default function DashboardPage() {
         <div className="container flex h-16 items-center px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <Keyboard className="h-6 w-6" />
-            <span>Codesist</span>
+            <span>CodeTyper</span>
           </Link>
           <nav className="ml-auto flex items-center gap-4">
             <Link href="/profile">
@@ -176,14 +252,27 @@ export default function DashboardPage() {
           </nav>
         </div>
       </header>
-      <main className="flex-1 container p-6">
+      <main className="flex-1 container py-6">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex flex-col gap-2">
               <TimeBasedGreeting username={profile?.username || "Developer"} />
               <p className="text-muted-foreground">Ready to improve your coding speed today?</p>
             </div>
-            {/* crap */}
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16 border-2 border-primary/10">
+                <AvatarImage src={profile?.avatar_url || ""} alt={profile?.username || "User"} />
+                <AvatarFallback className="text-xl">
+                  {profile?.username?.charAt(0).toUpperCase() || <User className="h-8 w-8" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium">{profile?.username || "User"}</span>
+                <Link href="/profile" className="text-sm text-primary hover:underline">
+                  Edit Profile
+                </Link>
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
@@ -314,11 +403,41 @@ export default function DashboardPage() {
                     <CardTitle>Speed Over Time</CardTitle>
                     <CardDescription>Your typing speed in WPM over the last 30 days</CardDescription>
                   </CardHeader>
-                  <CardContent className="h-80 flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <BarChart3 className="h-16 w-16 mx-auto" />
-                      <p className="mt-2">Complete more challenges to see your progress over time</p>
-                    </div>
+                  <CardContent className="h-80">
+                    {timeSeriesData.length > 0 ? (
+                      <div className="h-full">
+                        <div className="h-full flex flex-col">
+                          <div className="flex-1 flex">
+                            {timeSeriesData.map((point, i) => {
+                              const height = `${(point.wpm / 100) * 100}%`
+                              return (
+                                <div key={i} className="flex-1 flex flex-col justify-end px-1">
+                                  <div
+                                    className="bg-primary/80 rounded-t-sm w-full"
+                                    style={{ height }}
+                                    title={`${point.date}: ${point.wpm} WPM`}
+                                  ></div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <div className="h-6 mt-2 flex">
+                            {timeSeriesData.map((point, i) => (
+                              <div key={i} className="flex-1 text-xs text-center truncate">
+                                {point.date}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center text-muted-foreground">
+                          <BarChart3 className="h-16 w-16 mx-auto" />
+                          <p className="mt-2">Complete more challenges to see your progress over time</p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
                 <Card>
@@ -326,11 +445,31 @@ export default function DashboardPage() {
                     <CardTitle>Language Breakdown</CardTitle>
                     <CardDescription>Your performance across different languages</CardDescription>
                   </CardHeader>
-                  <CardContent className="h-80 flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <BarChart3 className="h-16 w-16 mx-auto" />
-                      <p className="mt-2">Try challenges in different languages to see your breakdown</p>
-                    </div>
+                  <CardContent className="h-80">
+                    {languageStats.length > 0 ? (
+                      <div className="space-y-4">
+                        {languageStats.map((stat, index) => (
+                          <div key={index} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="font-medium">{stat.language}</span>
+                              <span>{stat.avgWpm} WPM</span>
+                            </div>
+                            <Progress value={stat.avgWpm} max={100} className="h-2" />
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>{stat.attempts} attempts</span>
+                              <span>{stat.avgAccuracy}% accuracy</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center text-muted-foreground">
+                          <BarChart3 className="h-16 w-16 mx-auto" />
+                          <p className="mt-2">Try challenges in different languages to see your breakdown</p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -338,10 +477,10 @@ export default function DashboardPage() {
           </Tabs>
         </div>
       </main>
-      <footer className="border-t p-6">
+      <footer className="border-t py-6">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} Codesist. All rights reserved.
+            &copy; {new Date().getFullYear()} CodeTyper. All rights reserved.
           </p>
           <div className="flex gap-4">
             <Link href="/about" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
@@ -356,7 +495,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </footer>
-      <ToastContainer/>
     </div>
   )
 }
