@@ -226,7 +226,7 @@ export default function DashboardPage() {
         <div className="container flex h-16 items-center px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <Keyboard className="h-6 w-6" />
-            <span>CodeTyper</span>
+            <span>Codesist</span>
           </Link>
           <nav className="ml-auto flex items-center gap-4">
             <Link href="/profile">
@@ -461,7 +461,7 @@ export default function DashboardPage() {
       <footer className="border-t p-6">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} CodeTyper. All rights reserved.
+            &copy; {new Date().getFullYear()} Codesist. All rights reserved.
           </p>
           <div className="flex gap-4">
             <Link href="/about" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
