@@ -6,12 +6,7 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
 
   // Explicitly pass the environment variables
-  const supabase = createMiddlewareClient({
-    req,
-    res,
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  })
+  const supabase = createMiddlewareClient({ req, res })
 
   const {
     data: { session },
@@ -31,7 +26,7 @@ export async function middleware(req: NextRequest) {
   const isAuthRoute = authRoutes.some((route) => req.nextUrl.pathname === route)
 
   if (session && isAuthRoute) {
-    const redirectUrl = new URL("/dashboard", req.url)
+    const redirectUrl = new URL("/dashboard", req.url) 
     return NextResponse.redirect(redirectUrl)
   }
 

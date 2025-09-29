@@ -133,7 +133,7 @@ export default function ChallengePage({ params }: ChallengeProps) {
 
           // Show warning when time is running low
           if (newTime === 60) {
-          toast.info("You're runnig out of time!")
+          // toast.info("You're runnig out of time!")
           }
 
           return newTime
@@ -209,7 +209,7 @@ export default function ChallengePage({ params }: ChallengeProps) {
 
       // Notify on first error
       if (newErrors.length === 1 && errors.length === 0) {
-        toast.error("Fix code errors")
+        // toast.error("Fix code errors")
       }
     } else {
       setAccuracy(0)
@@ -260,7 +260,7 @@ export default function ChallengePage({ params }: ChallengeProps) {
         wpm: calculatedWpm,
         accuracy: accuracy,
         time_seconds: timeInSeconds,
-        completed: input === challenge.code, // Only mark as truly completed if the entire code was typed
+        completed: true, 
       })
 
       if (error) {

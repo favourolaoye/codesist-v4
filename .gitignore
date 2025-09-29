@@ -10,6 +10,8 @@
 # production
 /build
 
+.env.local
+.gitignore
 # debug
 npm-debug.log*
 yarn-debug.log*

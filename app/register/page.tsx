@@ -25,22 +25,25 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            username,
-          },
-        },
+        options: { data: { username } },
       })
 
-      if (error) {
-        throw error
+      if (error) throw error
+
+      if (data.user) {
+        await supabase.from("profiles").insert([
+          {
+            id: data.user.id,
+            username,
+            avatar_url: null,
+          },
+        ])
       }
 
-     toast.success("Registration sucessfully!")
-
+      toast.success("Registration sucessfull!")
       router.push("/login")
     } catch (error: any) {
       toast.error("Registration Failed")
@@ -120,7 +123,7 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
-      <ToastContainer/>
+      <ToastContainer />
     </div>
   )
 }
